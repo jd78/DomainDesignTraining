@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using RobotWar.Domain;
 
 namespace RobotWar.TestConsole
 {
@@ -10,6 +7,22 @@ namespace RobotWar.TestConsole
     {
         static void Main(string[] args)
         {
+            var robotWar = RobotWarAggregate.Create();
+            robotWar.AddArenaSize(5, 5);
+            robotWar.AddRobot(1, 2, CompassPoint.North);
+
+            robotWar.RotateRobot(Rotation.Left);
+            robotWar.MoveRobot();
+            robotWar.RotateRobot(Rotation.Left);
+            robotWar.MoveRobot();
+            robotWar.RotateRobot(Rotation.Left);
+            robotWar.MoveRobot();
+            robotWar.RotateRobot(Rotation.Left);
+            robotWar.MoveRobot();
+            robotWar.MoveRobot();
+            Console.WriteLine(robotWar.Robot.Value.GetPosition());
+
+            Console.ReadLine();
         }
     }
 }
