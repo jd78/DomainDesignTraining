@@ -4,18 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{EA210A31-6236-421F-BBFE-F56EB81D77E3}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <ProjectGuid>{DBA93F95-89A7-441D-A6E2-F5A884903A3A}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>RobotWar.TestConsole</RootNamespace>
-    <AssemblyName>RobotWar.TestConsole</AssemblyName>
+    <RootNamespace>RobotWar.Infrastructure</RootNamespace>
+    <AssemblyName>RobotWar.Infrastructure</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -25,7 +23,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -34,10 +31,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Autofac, Version=4.3.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
-      <HintPath>..\packages\Autofac.4.3.0\lib\net45\Autofac.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="NEventStore, Version=5.2.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\NEventStore.5.2.0\lib\net40\NEventStore.dll</HintPath>
       <Private>True</Private>
@@ -60,22 +53,23 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IoC.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="EventStore\AggregateFactory.cs" />
+    <Compile Include="EventStore\CommitDispatchingPipelineHook.cs" />
+    <Compile Include="EventStore\IRobotWarRepository.cs" />
+    <Compile Include="EventStore\RobotWarRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\RobotWar.Contracts\RobotWar.Contracts.csproj">
+      <Project>{0D63F4BD-E8D3-4AA3-BE36-3953FCEB730C}</Project>
+      <Name>RobotWar.Contracts</Name>
+    </ProjectReference>
     <ProjectReference Include="..\RobotWar.Domain\RobotWar.Domain.csproj">
       <Project>{3320FF8A-0612-48E1-B596-48D258E1BE54}</Project>
       <Name>RobotWar.Domain</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\RobotWar.Infrastructure\RobotWar.Infrastructure.csproj">
-      <Project>{DBA93F95-89A7-441D-A6E2-F5A884903A3A}</Project>
-      <Name>RobotWar.Infrastructure</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

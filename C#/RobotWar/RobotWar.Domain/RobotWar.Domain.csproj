@@ -31,6 +31,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="NEventStore, Version=5.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\NEventStore.5.2.0\lib\net40\NEventStore.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
@@ -51,14 +55,22 @@
   <ItemGroup>
     <Compile Include="ArenaCoordinates.cs" />
     <Compile Include="CompassPoint.cs" />
+    <Compile Include="DomainBase.cs" />
     <Compile Include="Robot.cs" />
     <Compile Include="RobotCoordinates.cs" />
     <Compile Include="RobotWarAggregate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RobotWarMemento.cs" />
     <Compile Include="Rotation.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RobotWar.Contracts\RobotWar.Contracts.csproj">
+      <Project>{0D63F4BD-E8D3-4AA3-BE36-3953FCEB730C}</Project>
+      <Name>RobotWar.Contracts</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
