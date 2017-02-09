@@ -1,42 +1,62 @@
 ﻿using System;
+using CommonDomain;
+using RobotWar.Contracts;
 using SB.Betting.Utilities;
 
 namespace RobotWar.Domain
 {
-    public sealed class RobotWarAggregate
+    public sealed class RobotWarAggregate : DomainBase, ICloneable
     {
-        private Guid _id;
-        private WriteOnce<ArenaCoordinates> _arenaCoordinates;
+        public WriteOnce<ArenaCoordinates> ArenaCoordinates;
         public Option<Robot> Robot { get; private set; }
 
-        private RobotWarAggregate()
+        public object Clone()
         {
-            _id = Guid.NewGuid();
-            _arenaCoordinates = new WriteOnce<ArenaCoordinates>();
+            return MemberwiseClone();
         }
 
-        public static RobotWarAggregate Create()
+        private RobotWarAggregate(Guid id)
         {
-            return new RobotWarAggregate();
+            Id = id;
+            ArenaCoordinates = new WriteOnce<ArenaCoordinates>();
         }
 
-        public void AddArenaSize(int topX, int topY)
+        public RobotWarAggregate(IMemento memento)
+        {
+            var snapshot = memento as RobotWarMemento;
+            if (snapshot == null)
+                throw new ApplicationException("memento type mismatch");
+
+            Id = snapshot.Id;
+            ArenaCoordinates = snapshot.ArenaCoordinates;
+            Robot = snapshot.Robot;
+            Version = snapshot.Version;
+        }
+
+        public static RobotWarAggregate Create(Guid id, int topX, int topY)
         {
             ArgCheck.IsGreaterThanZero(topX, nameof(topX));
             ArgCheck.IsGreaterThanZero(topY, nameof(topY));
-            _arenaCoordinates.Value = ArenaCoordinates.Create(topX, topY);   
+            return new RobotWarAggregate(id, topX, topY);
         }
 
+        #region Commands
+
+        private RobotWarAggregate(Guid id, int topX, int topY) : this(id)
+        {
+            var evt = new RobotWarGameCreated(id, Version, topX, topY);
+            RaiseDomainEvent(evt);
+        }
+        
         public void AddRobot(int x, int y, CompassPoint c)
         {
-            ArgCheck.IsSet(_arenaCoordinates, nameof(_arenaCoordinates));
-            ArgCheck.Check(x, nameof(x), p => p > _arenaCoordinates.Value.TopRightX, "x outside arena coordinates");
-            ArgCheck.Check(y, nameof(y), p => p > _arenaCoordinates.Value.TopRightY, "y outside arena coordinates");
-            Robot = Option.Some(Domain.Robot.Create(RobotCoordinates.Create(x, y), c));
+            ArgCheck.IsSet(ArenaCoordinates, nameof(ArenaCoordinates));
+            ArgCheck.Check(x, nameof(x), p => p > ArenaCoordinates.Value.TopRightX, "x outside arena coordinates");
+            ArgCheck.Check(y, nameof(y), p => p > ArenaCoordinates.Value.TopRightY, "y outside arena coordinates");
+            var evt = new RobotAdded(Id, Version, x, y,
+                EnumEx.MapByStringValue<CompassPoint, Contracts.CompassPoint>(c));
+            RaiseDomainEvent(evt);
         }
-
-        
-        #region Commands/Mutators
 
         public void RotateRobot(Rotation rotation)
         {
@@ -52,7 +72,9 @@ namespace RobotWar.Domain
                 .When(i => i == -1, () => CompassPoint.West)
                 .Otherwise.Default(() => (CompassPoint)(compassPointInt % 4));
 
-            Robot = Option.Some(robot.UpdateCompassPoint(newCompassPoint));
+            var evt = new RobotRotated(Id, Version, 
+                EnumEx.MapByStringValue<CompassPoint, Contracts.CompassPoint>(newCompassPoint));
+            RaiseDomainEvent(evt); 
         }
 
         public void MoveRobot()
@@ -61,13 +83,43 @@ namespace RobotWar.Domain
             //check all is valid
 
             var robot = Robot.Value.Move();
-            var arenaCoordinates = _arenaCoordinates.Value;
+            var arenaCoordinates = ArenaCoordinates.Value;
             if (!arenaCoordinates.IsWithinCoordinates(robot.Coordinates.X, robot.Coordinates.Y))
             {
                 throw new ApplicationException("Invalid move");
             }
 
-            Robot = Option.Some(robot);
+            var evt = new RobotMoved(Id, Version, robot.Coordinates.X, robot.Coordinates.Y,
+                EnumEx.MapByStringValue<CompassPoint, Contracts.CompassPoint>(robot.CompassPoint));
+            RaiseDomainEvent(evt);
+        }
+
+        #endregion
+
+        #region Applies/Mutators
+
+        private void Apply(RobotWarGameCreated evt)
+        {
+            ArenaCoordinates.Value = Domain.ArenaCoordinates.Create(evt.ArenaCoordinatesTopX, evt.ArenaCoordinatesTopY);
+        }
+
+        private void Apply(RobotAdded evt)
+        {
+            Robot = Option.Some(Domain.Robot.Create(RobotCoordinates.Create(evt.XCoordinate, evt.YCoordinate), 
+                EnumEx.MapByStringValue<Contracts.CompassPoint, CompassPoint>(evt.CompassPoint)));
+        }
+
+        private void Apply(RobotRotated evt)
+        {
+            Robot = Option.Some(Robot.Value.UpdateCompassPoint(
+                EnumEx.MapByStringValue<Contracts.CompassPoint, CompassPoint>(evt.CompassPoint)));
+
+        }
+
+        private void Apply(RobotMoved evt)
+        {
+            Robot = Option.Some(Domain.Robot.Create(RobotCoordinates.Create(evt.XPosition, evt.YPosition),
+                EnumEx.MapByStringValue<Contracts.CompassPoint, CompassPoint>(evt.CompassPoint)));
         }
 
         #endregion
