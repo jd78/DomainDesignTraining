@@ -12,7 +12,13 @@ namespace RobotWar.Domain
 
         public object Clone()
         {
-            return MemberwiseClone();
+            var aggregate = new RobotWarAggregate(Id)
+            {
+                Robot = Robot,
+                ArenaCoordinates = ArenaCoordinates,
+                Version = Version
+            };
+            return aggregate;
         }
 
         private RobotWarAggregate(Guid id)
@@ -28,7 +34,9 @@ namespace RobotWar.Domain
                 throw new ApplicationException("memento type mismatch");
 
             Id = snapshot.Id;
-            ArenaCoordinates = snapshot.ArenaCoordinates;
+            ArenaCoordinates = new WriteOnce<ArenaCoordinates>();
+            if (snapshot.ArenaCoordinates.HasValue)
+                ArenaCoordinates.Value = snapshot.ArenaCoordinates.Value;
             Robot = snapshot.Robot;
             Version = snapshot.Version;
         }
