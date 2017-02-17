@@ -8,16 +8,18 @@ namespace RobotWar.Domain
     {
         public RobotCoordinates Coordinates { get; private set; }
         public CompassPoint CompassPoint { get; private set; }
-        
-        private Robot(RobotCoordinates coordinates, CompassPoint compassPoint)
+        public string Name { get; private set; }
+
+        private Robot(string name, RobotCoordinates coordinates, CompassPoint compassPoint)
         {
             Coordinates = coordinates;
             CompassPoint = compassPoint;
+            Name = name;
         }
 
-        internal static Robot Create(RobotCoordinates coordinates, CompassPoint compassPoint)
+        internal static Robot Create(string name, RobotCoordinates coordinates, CompassPoint compassPoint)
         {
-            return new Robot(coordinates, compassPoint);
+            return new Robot(name, coordinates, compassPoint);
         }
 
         #region Queries
@@ -41,11 +43,12 @@ namespace RobotWar.Domain
             var x = Coordinates.X;
             var y = Coordinates.Y;
             var compassPoint = CompassPoint;
+            var name = Name;
             return Pattern.Match<CompassPoint, Robot>(compassPoint)
-                .When(c => c == CompassPoint.North, () => new Robot(RobotCoordinates.Create(x, y + 1), compassPoint))
-                .When(c => c == CompassPoint.South, () => new Robot(RobotCoordinates.Create(x, y - 1), compassPoint))
-                .When(c => c == CompassPoint.East, () => new Robot(RobotCoordinates.Create(x + 1, y), compassPoint))
-                .When(c => c == CompassPoint.West, () => new Robot(RobotCoordinates.Create(x - 1, y), compassPoint))
+                .When(c => c == CompassPoint.North, () => new Robot(name, RobotCoordinates.Create(x, y + 1), compassPoint))
+                .When(c => c == CompassPoint.South, () => new Robot(name, RobotCoordinates.Create(x, y - 1), compassPoint))
+                .When(c => c == CompassPoint.East, () => new Robot(name, RobotCoordinates.Create(x + 1, y), compassPoint))
+                .When(c => c == CompassPoint.West, () => new Robot(name, RobotCoordinates.Create(x - 1, y), compassPoint))
                 .Result;
         }
 

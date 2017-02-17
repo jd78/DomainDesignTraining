@@ -16,27 +16,29 @@ namespace RobotWar.TestConsole
             var id = Guid.NewGuid();
             var robotWar = RobotWarAggregate.Create(id, 5, 5);
 
-            robotWar.AddRobot(1, 2, CompassPoint.North);
+            var robotName = "test";
+
+            robotWar.AddRobot(1, 2, CompassPoint.North, robotName);
 
             //store.Save(robotWar);
 
-            robotWar.RotateRobot(Rotation.Left);
-            robotWar.MoveRobot();
-            robotWar.RotateRobot(Rotation.Left);
-            robotWar.MoveRobot();
+            robotWar.RotateRobot(Rotation.Left, robotName);
+            robotWar.MoveRobot(robotName);
+            robotWar.RotateRobot(Rotation.Left, robotName);
+            robotWar.MoveRobot(robotName);
 
             //store.Save(robotWar);
 
-            robotWar.RotateRobot(Rotation.Left);
-            robotWar.MoveRobot();
+            robotWar.RotateRobot(Rotation.Left, robotName);
+            robotWar.MoveRobot(robotName);
 
             //var r = store.Read(id);
 
-            robotWar.RotateRobot(Rotation.Left);
-            robotWar.MoveRobot();
-            robotWar.MoveRobot();
-            robotWar.RotateRobot(Rotation.Left);
-            Console.WriteLine(robotWar.Robot.Value.GetPosition());
+            robotWar.RotateRobot(Rotation.Left, robotName);
+            robotWar.MoveRobot(robotName);
+            robotWar.MoveRobot(robotName);
+            robotWar.RotateRobot(Rotation.Left, robotName);
+            Console.WriteLine(robotWar.GetRobot(robotName).Value.GetPosition());
 
 
             store.Save(robotWar);

@@ -2,22 +2,24 @@
 using CommonDomain;
 using RobotWar.Contracts;
 using SB.Betting.Utilities;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace RobotWar.Domain
 {
     public sealed class RobotWarAggregate : DomainBase, ICloneable
     {
         public WriteOnce<ArenaCoordinates> ArenaCoordinates;
-        public Option<Robot> Robot { get; private set; }
+        private IDictionary<string, Robot> _robots;
 
         public object Clone()
         {
             var aggregate = new RobotWarAggregate(Id)
             {
-                Robot = Robot,
                 ArenaCoordinates = ArenaCoordinates,
                 Version = Version
             };
+            aggregate._robots = GetAllRobots().Select(p => new KeyValuePair<string, Robot>(p.Name, p)).ToDictionary();
             return aggregate;
         }
 
@@ -25,6 +27,7 @@ namespace RobotWar.Domain
         {
             Id = id;
             ArenaCoordinates = new WriteOnce<ArenaCoordinates>();
+            _robots = new Dictionary<string, Robot>();
         }
 
         public RobotWarAggregate(IMemento memento)
@@ -37,7 +40,8 @@ namespace RobotWar.Domain
             ArenaCoordinates = new WriteOnce<ArenaCoordinates>();
             if (snapshot.ArenaCoordinates.HasValue)
                 ArenaCoordinates.Value = snapshot.ArenaCoordinates.Value;
-            Robot = snapshot.Robot;
+            _robots = snapshot.RobotMementos.Select(p => new KeyValuePair<string, Robot>(p.Name,
+                Robot.Create(p.Name, RobotCoordinates.Create(p.CoordinartesX, p.CoordinartesY), p.CompassPoint))).ToDictionary();
             Version = snapshot.Version;
         }
 
@@ -48,6 +52,26 @@ namespace RobotWar.Domain
             return new RobotWarAggregate(id, topX, topY);
         }
 
+        #region Queries
+        public IEnumerable<Robot> GetAllRobots()
+        {
+            return _robots.Values;
+        }
+        private bool IsRobotExist(string name)
+        {
+            return _robots.ContainsKey(name);
+        }
+
+        public Option<Robot> GetRobot(string name)
+        {
+            if (!IsRobotExist(name))
+            {
+                return Option.None<Robot>();
+            }
+            return Option.Some(_robots[name]);
+        }
+        #endregion
+
         #region Commands
 
         private RobotWarAggregate(Guid id, int topX, int topY) : this(id)
@@ -55,24 +79,32 @@ namespace RobotWar.Domain
             var evt = new RobotWarGameCreated(id, Version, topX, topY);
             RaiseDomainEvent(evt);
         }
-        
-        public void AddRobot(int x, int y, CompassPoint c)
+
+        public void AddRobot(int x, int y, CompassPoint c, string name)
         {
             ArgCheck.IsSet(ArenaCoordinates, nameof(ArenaCoordinates));
             ArgCheck.Check(x, nameof(x), p => p > ArenaCoordinates.Value.TopRightX, "x outside arena coordinates");
             ArgCheck.Check(y, nameof(y), p => p > ArenaCoordinates.Value.TopRightY, "y outside arena coordinates");
+            var maybeRobot = GetRobot(name);
+            if (maybeRobot.HasValue)
+            {
+                throw new ApplicationException($"Robot {name} already exist");
+            }
             var evt = new RobotAdded(Id, Version, x, y,
-                EnumEx.MapByStringValue<CompassPoint, Contracts.CompassPoint>(c));
+                EnumEx.MapByStringValue<CompassPoint, Contracts.CompassPoint>(c), name);
             RaiseDomainEvent(evt);
         }
 
-        public void RotateRobot(Rotation rotation)
+        public void RotateRobot(Rotation rotation, string name)
         {
-            ArgCheck.IsSet(Robot, nameof(Robot));
-            var robot = Robot.Value;
-
+            var maybeRobot = GetRobot(name);
+            if (maybeRobot.IsNone)
+            {
+                throw new ApplicationException($"Robot {name} does not exist");
+            }
+            var robot = maybeRobot.Value;
             var compassPointInt = Pattern.Match<Rotation, int>(rotation)
-                .When(r => r == Rotation.Right, () => (int) robot.CompassPoint + 1)
+                .When(r => r == Rotation.Right, () => (int)robot.CompassPoint + 1)
                 .When(r => r == Rotation.Left, () => (int)robot.CompassPoint - 1)
                 .Result;
 
@@ -80,27 +112,31 @@ namespace RobotWar.Domain
                 .When(i => i == -1, () => CompassPoint.West)
                 .Otherwise.Default(() => (CompassPoint)(compassPointInt % 4));
 
-            var evt = new RobotRotated(Id, Version, 
-                EnumEx.MapByStringValue<CompassPoint, Contracts.CompassPoint>(newCompassPoint));
-            RaiseDomainEvent(evt); 
+            var evt = new RobotRotated(Id, Version,
+                EnumEx.MapByStringValue<CompassPoint, Contracts.CompassPoint>(newCompassPoint), name);
+            RaiseDomainEvent(evt);
         }
 
-        public void MoveRobot()
+        public void MoveRobot(string name)
         {
-            ArgCheck.IsSet(Robot, nameof(Robot));
+            var maybeRobot = GetRobot(name);
+            if (maybeRobot.IsNone)
+            {
+                throw new ApplicationException($"Robot {name} does not exist");
+            }
             //check all is valid
-
-            var robot = Robot.Value.Move();
+            var robot = maybeRobot.Value.Move();
             var arenaCoordinates = ArenaCoordinates.Value;
             if (!arenaCoordinates.IsWithinCoordinates(robot.Coordinates.X, robot.Coordinates.Y))
             {
                 throw new ApplicationException("Invalid move");
             }
 
-            var evt = new RobotMoved(Id, Version, robot.Coordinates.X, robot.Coordinates.Y,
+            var evt = new RobotMoved(robot.Name, Id, Version, robot.Coordinates.X, robot.Coordinates.Y,
                 EnumEx.MapByStringValue<CompassPoint, Contracts.CompassPoint>(robot.CompassPoint));
             RaiseDomainEvent(evt);
         }
+
 
         #endregion
 
@@ -113,21 +149,21 @@ namespace RobotWar.Domain
 
         private void Apply(RobotAdded evt)
         {
-            Robot = Option.Some(Domain.Robot.Create(RobotCoordinates.Create(evt.XCoordinate, evt.YCoordinate), 
+            _robots.Add(evt.Name, Domain.Robot.Create(evt.Name, RobotCoordinates.Create(evt.XCoordinate, evt.YCoordinate),
                 EnumEx.MapByStringValue<Contracts.CompassPoint, CompassPoint>(evt.CompassPoint)));
         }
 
         private void Apply(RobotRotated evt)
         {
-            Robot = Option.Some(Robot.Value.UpdateCompassPoint(
-                EnumEx.MapByStringValue<Contracts.CompassPoint, CompassPoint>(evt.CompassPoint)));
-
+            var robot = GetRobot(evt.Name).Value.UpdateCompassPoint(
+                EnumEx.MapByStringValue<Contracts.CompassPoint, CompassPoint>(evt.CompassPoint));
+            _robots[evt.Name] = robot;
         }
 
         private void Apply(RobotMoved evt)
         {
-            Robot = Option.Some(Domain.Robot.Create(RobotCoordinates.Create(evt.XPosition, evt.YPosition),
-                EnumEx.MapByStringValue<Contracts.CompassPoint, CompassPoint>(evt.CompassPoint)));
+            _robots[evt.Name] = Domain.Robot.Create(evt.Name, RobotCoordinates.Create(evt.XPosition, evt.YPosition),
+                EnumEx.MapByStringValue<Contracts.CompassPoint, CompassPoint>(evt.CompassPoint));
         }
 
         #endregion

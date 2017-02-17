@@ -9,9 +9,11 @@ namespace RobotWar.Contracts
         public int XPosition { get; private set; }
         public int YPosition { get; private set; }
         public CompassPoint CompassPoint { get; private set; }
+        public string Name { get; private set; }
 
-        public RobotMoved(Guid id, int version, int xPosition, int yPosition, CompassPoint compassPoint)
+        public RobotMoved(string name, Guid id, int version, int xPosition, int yPosition, CompassPoint compassPoint)
         {
+            Name = name;
             Id = id;
             Version = version;
             XPosition = xPosition;

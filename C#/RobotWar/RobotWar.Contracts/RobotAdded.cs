@@ -9,14 +9,16 @@ namespace RobotWar.Contracts
         public int XCoordinate { get; private set; }
         public int YCoordinate { get; private set; }
         public CompassPoint CompassPoint { get; private set; }
+        public string Name { get; private set; }
 
-        public RobotAdded(Guid id, int version, int xCoordinate, int yCoordinate, CompassPoint compassPoint)
+        public RobotAdded(Guid id, int version, int xCoordinate, int yCoordinate, CompassPoint compassPoint, string name)
         {
             Id = id;
             Version = version;
             XCoordinate = xCoordinate;
             YCoordinate = yCoordinate;
             CompassPoint = compassPoint;
+            Name = name;
         }
     }
 }
