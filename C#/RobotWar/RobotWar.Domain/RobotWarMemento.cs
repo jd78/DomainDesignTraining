@@ -64,7 +64,7 @@ namespace RobotWar.Domain
                 CoordinartesX = coordinateX,
                 CoordinartesY = coordinateY,
                 CompassPoint = CompassPoint,
-                //Name = name
+                Name = name
             };
         }
     }
