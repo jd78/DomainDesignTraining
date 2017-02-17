@@ -39,7 +39,7 @@ namespace RobotWar.Domain
                 Id = aggregate.Id,
                 Version = aggregate.Version,
                 RobotMementos = aggregate.GetAllRobots().Select(item => RobotMemento.Create(
-                    item.Coordinates.X, item.Coordinates.Y, item.CompassPoint, item.Name))
+                    item.Coordinates.X, item.Coordinates.Y, item.CompassPoint, item.Name)).EnsureList()
             };
 
             if (aggregate.ArenaCoordinates.HasValue)
@@ -64,7 +64,7 @@ namespace RobotWar.Domain
                 CoordinartesX = coordinateX,
                 CoordinartesY = coordinateY,
                 CompassPoint = CompassPoint,
-                //Name = name
+                Name = name
             };
         }
     }
