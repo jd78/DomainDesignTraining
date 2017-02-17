@@ -4,6 +4,22 @@ open System
 
 module Domain =
 
+    let maybeGetRobot robotName robotWar = 
+        let robotExists = robotName |> robotWar.robots.ContainsKey 
+        match robotExists with
+        | true -> Some robotWar.robots.[robotName]
+        | false -> None
+    
+    let getRobot robotName robotWar = 
+        let r = robotWar |> maybeGetRobot robotName
+        r.Value
+
+    let ensureRobotExists f robotName robotWar =
+        let maybeRobot = robotWar |> maybeGetRobot robotName
+        match maybeRobot with
+        | Some r -> f()
+        | None -> failwith "Robot not found"
+
     module private Private =
         type Rotation = 
         |Left
@@ -13,10 +29,13 @@ module Domain =
             robotWar |> RobotWar.WithGridSize gridSize
 
         let addRobot r robotWar = 
-            robotWar |> RobotWar.WithRobot r
+            let maybeRobot = robotWar |> maybeGetRobot r.name
+            match maybeRobot with
+            | Some r -> failwith "a Robot with the same name already exists"
+            | None -> robotWar |> RobotWar.AddRobot r
 
-        let rotateRobot rotation robotWar =
-            let robot = robotWar.robot 
+        let rotateRobot robotName rotation robotWar =
+            let robot = robotWar |> getRobot robotName
             let compassPointInt = 
                 match rotation with 
                 | Right -> int robot.compassPoint + 1
@@ -28,9 +47,9 @@ module Domain =
                 | _ -> enum<CompassPoint>(compassPointInt % 4)
             
             robotWar 
-            |> RobotWar.WithRobot (robotWar.robot |> Robot.WithCompassPoint newCompassPoint)
+            |> RobotWar.WithRobot (robot |> Robot.WithCompassPoint newCompassPoint)
         
-        let moveRobot robotWar = 
+        let moveRobot robotName robotWar = 
             let validateMove r = 
                 match (r.coordinates.x, r.coordinates.y) with
                 | (x, y) when x<0 || y<0 -> failwith "Robot outside of arena"
@@ -52,10 +71,8 @@ module Domain =
                     | _ -> failwith "Compass point not matched"
             
             let op = moveRobot >> validateMove
-
-            let newRobotState = 
-                robotWar.robot 
-                |> op
+            let robot = robotWar |> getRobot robotName
+            let newRobotState = robot |> op
 
             robotWar |> RobotWar.WithRobot newRobotState
 
@@ -68,17 +85,18 @@ module Domain =
     let getRobotPosition robot =
         sprintf "%d %d %s" robot.coordinates.x robot.coordinates.y (string robot.compassPoint)
 
+    type RobotName = string
     type Command = 
         | AddGridSize of GridSize
         | AddRobot of Robot
-        | RotateLeft
-        | RotateRight
-        | Move
+        | RotateLeft of RobotName
+        | RotateRight of RobotName
+        | Move of RobotName
     
     let update command robotWar = 
         match command with
         | AddGridSize g -> robotWar |> Private.addGridSize g
         | AddRobot r -> robotWar |> Private.addRobot r
-        | RotateLeft -> robotWar |> Private.rotateRobot Private.Rotation.Left
-        | RotateRight -> robotWar |> Private.rotateRobot Private.Rotation.Right
-        | Move -> robotWar |> Private.moveRobot
+        | RotateLeft n -> robotWar |> ensureRobotExists (fun f ->  robotWar |> Private.rotateRobot n Private.Rotation.Left) n 
+        | RotateRight n -> robotWar |> ensureRobotExists (fun f -> robotWar |> Private.rotateRobot n Private.Rotation.Right) n
+        | Move n -> robotWar |> ensureRobotExists (fun f -> robotWar |> Private.moveRobot n) n

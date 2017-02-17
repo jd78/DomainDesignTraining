@@ -1,8 +1,10 @@
 namespace Game
 
 open System
+open System.Collections.Generic
 
 type RobotWarId = Guid
+type RobotName = string
 
 type GridSize = {
     x:int
@@ -26,19 +28,25 @@ type Coordinates = {
     static member WithY y c = {c with y=y}
 
 type Robot = {
+    name : RobotName
     coordinates:Coordinates
     compassPoint: CompassPoint
 } with
-    static member CreateDefault = {coordinates=Coordinates.ZeroCreate; compassPoint=CompassPoint.North}
-    static member Create c cp = {coordinates=c; compassPoint=cp}
+    static member CreateDefault = {name=""; coordinates=Coordinates.ZeroCreate; compassPoint=CompassPoint.North; }
+    static member Create name c cp = {name=name; coordinates=c; compassPoint=cp}
     static member WithCompassPoint c r = {r with compassPoint=c}
     static member WithCoordinates c r = {r with coordinates=c}
 
 type RobotWar = {
     id:RobotWarId
     gridSize:GridSize
-    robot:Robot
+    robots:Dictionary<string,Robot>
 } with 
-    static member Create = { id=Guid.NewGuid(); gridSize={x=0; y=0}; robot=Robot.CreateDefault }
+    static member Create = { id=Guid.NewGuid(); gridSize={x=0; y=0}; robots=Dictionary<string,Robot>() }
     static member WithGridSize g w = {w with gridSize=g}
-    static member WithRobot r w ={w with robot=r}
+    static member AddRobot r w = 
+        w.robots.Add(r.name, r)
+        w
+    static member WithRobot r w = 
+        w.robots.[r.name] <- r
+        w
